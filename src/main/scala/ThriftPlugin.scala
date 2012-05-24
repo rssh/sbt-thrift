@@ -89,8 +89,8 @@ object ThriftPlugin extends Plugin {
   },
 
   libraryDependencies  <<= (libraryDependencies, thriftScalaEnabled) { 
-                                    (deps, enabled) =>
-                                          deps :+ "com.twitter" %% "scrooge" % "2.5.5" % "provided" 
+           (deps, enabled) =>
+            deps :+ "com.twitter" %% "scrooge" % "3.0.0-SNAPSHOT" % "provided" 
                               },
 
   (managedResourceDirectories in Compile) <++= (thriftJsOutputDir, thriftJsEnabled) {
