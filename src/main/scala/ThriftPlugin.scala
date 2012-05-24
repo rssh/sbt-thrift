@@ -21,7 +21,14 @@ object ThriftPlugin extends Plugin {
   val thriftJsOptions = SettingKey[Seq[String]]("thrift-js-options", "additional options for js thrift generation")
   val thriftJsEnabled = SettingKey[Boolean]("js-enabled", "javascript generation is enabled. Default - no")
 
+
+  val thriftGenerateScala = TaskKey[Seq[File]]("generate-scala", "Generate scala sources from thrift files")
+  val thriftScalaOptions = SettingKey[Seq[String]]("thrift-scala-options", "additional options for scala thrift generation")
+  val thriftScalaOutputDir = SettingKey[File]("scala-output-directory","Directory where generated scala files should be placed. default target/thrift-scala")
+  val thriftScalaEnabled = SettingKey[Boolean]("scala-enabled", "scala generation is enabled. Default - no")
+
   lazy val thriftSettings :Seq[Setting[_]] = inConfig(thriftConfig)(Seq[Setting[_]](
+
   thrift := "thrift",
 
   thriftSourceDir <<= (sourceDirectory in Compile){ _ / "thrift"},
@@ -58,10 +65,33 @@ object ThriftPlugin extends Plugin {
         }
     },
 
+  thriftGenerateScala <<= (streams, thriftSourceDir, thriftScalaOutputDir, 
+                                    thriftScalaOptions, thriftScalaEnabled) map { 
+        ( out, sdir, odir, opts, enabled ) =>
+        if (enabled) {
+          //System.err.println("will generate scala (todo) ");
+          val fullOpts = Seq[String]("-l","scala","-i",sdir.toString,
+                                              "-d",odir.toString
+                                ) ++ opts;
+          // TODO: eliminate dependency ?
+          //scroogeClass.invoke(null,run,opts.toArray);
+          com.twitter.scrooge.Main.main(fullOpts.toArray);
+          (odir ** "*.scala").get.toSeq
+          //Seq[File]()
+        } else {
+          Seq[File]()
+        }
+   },
+
 
   managedClasspath <<= (classpathTypes, update) map { (cpt, up) =>
     Classpaths.managedJars(thriftConfig, cpt, up)
   },
+
+  libraryDependencies  <<= (libraryDependencies, thriftScalaEnabled) { 
+                                    (deps, enabled) =>
+                                          deps :+ "com.twitter" %% "scrooge" % "2.5.5" % "provided" 
+                              },
 
   (managedResourceDirectories in Compile) <++= (thriftJsOutputDir, thriftJsEnabled) {
       (out, enabled) => if (enabled) {
@@ -71,8 +101,9 @@ object ThriftPlugin extends Plugin {
                         }
   }
 
-  )) ++ Seq[Setting[_]](
-    sourceGenerators in Compile <+= thriftGenerate in thriftConfig,
+  )) ++ Seq(
+    (sourceGenerators in Compile) <+= thriftGenerate in thriftConfig,
+    sourceGenerators in Compile <+= thriftGenerateScala in thriftConfig,
     resourceGenerators in Compile <+= thriftGenerateJs in thriftConfig,
     ivyConfigurations += thriftConfig
   )
