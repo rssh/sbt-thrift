@@ -5,7 +5,7 @@ organization := "atd"
 
 name := "sbt-thrift"
 
-version := "0.4"
+version := "0.5-SNAPSHOT"
 
 externalResolvers ++= Seq("Local Maven Repository" at "file:///home/rssh/.m2/repository/")
 
