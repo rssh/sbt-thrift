@@ -39,7 +39,7 @@ object ThriftPlugin extends Plugin {
 
   thriftJavaOptions := Seq[String](),
 
-  thriftJsOutputDir := new File("target/gen-js"),
+  thriftJsOutputDir := new File("target/thrift-js"),
 
   thriftGenerate <<= (streams, thriftSourceDir, thriftOutputDir, 
                       thrift, thriftJavaOptions, thriftJavaEnabled) map { 
@@ -65,6 +65,10 @@ object ThriftPlugin extends Plugin {
         }
     },
 
+  thriftScalaOutputDir := new File("target/thrift-scala"),
+
+  thriftScalaOptions := Seq(),
+
   thriftGenerateScala <<= (streams, thriftSourceDir, thriftScalaOutputDir, 
                                     thriftScalaOptions, thriftScalaEnabled) map { 
         ( out, sdir, odir, opts, enabled ) =>
@@ -72,7 +76,8 @@ object ThriftPlugin extends Plugin {
           //System.err.println("will generate scala (todo) ");
           val fullOpts = Seq[String]("-l","scala","-i",sdir.toString,
                                               "-d",odir.toString
-                                ) ++ opts;
+                                ) ++ opts ++
+                                (sdir ** "*.thrift").get.toSeq map (_.toString)
           // TODO: eliminate dependency ?
           //scroogeClass.invoke(null,run,opts.toArray);
           com.twitter.scrooge.Main.main(fullOpts.toArray);
@@ -88,10 +93,24 @@ object ThriftPlugin extends Plugin {
     Classpaths.managedJars(thriftConfig, cpt, up)
   },
 
-  libraryDependencies  <<= (libraryDependencies, thriftScalaEnabled) { 
-           (deps, enabled) =>
-            deps :+ "com.twitter" %% "scrooge" % "3.0.0-SNAPSHOT" % "provided" 
-                              },
+  (libraryDependencies in Compile)  <++= (thriftScalaEnabled,
+                                                 thriftJavaEnabled) { 
+           (scalaEnabled, javaEnabled) =>
+                  (if (scalaEnabled) {
+                       System.err.println("libaryDependencies in compile\n");
+                       Seq("com.twitter" %% "scrooge" % "3.0.0-SNAPSHOT" % "provided",
+                           "com.twitter" %% "scrooge-runtime" % "3.0.0-SNAPSHOT"
+                          )
+                     } else
+                         Seq()
+                    ) ++ (if (scalaEnabled || javaEnabled) {
+                          Some("org.apache.thrift" % "libthrift" % "0.8.0")
+                         } else {
+                          None
+                         })
+  },
+
+  //(managedJars in Compile) <++ = (
 
   (managedResourceDirectories in Compile) <++= (thriftJsOutputDir, thriftJsEnabled) {
       (out, enabled) => if (enabled) {
@@ -129,4 +148,4 @@ object ThriftPlugin extends Plugin {
   }
 
 
-}
+ }

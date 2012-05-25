@@ -13,3 +13,5 @@ libraryDependencies += "com.twitter" % "scrooge" % "3.0.0-SNAPSHOT"
   
 publishTo := Some(Resolver.file("bigtoast.github.com", file(Path.userHome + "/Projects/Destroyer/bigtoast.github.com/repo")))
 
+seq(ScriptedPlugin.scriptedSettings: _*)
+
